@@ -1,0 +1,147 @@
+<html>
+  <head>
+    <title>rxjs动画由浅入深</title>
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <script src="https://unpkg.com/@reactivex/rxjs@5.0.0-beta.1/dist/global/Rx.umd.js"></script>
+    <style>
+      .box {
+        position: absolute;
+        -webkit-transform: translate(10px, 10px);
+        transform: translate(10px, 10px);
+        transition: 0.1s -webkit-transform ease-out;
+        transition: 0.1s transform ease-out;
+        transition: 0.1s transform ease-out, 0.1s -webkit-transform ease-out;
+        width: 40px;
+        height: 40px;
+        background: #ffa500;
+        cursor: pointer;
+        background: pink;
+      }
+      .box:nth-child(1) {
+        background: rgb(161, 49, 49);
+        z-index: 100;
+      }
+      .box:nth-child(2) {
+        background: #ffa500;
+        z-index: 99;
+        pointer-events: none;
+      }
+      .box:nth-child(3) {
+        background: #ff0;
+        z-index: 98;
+        pointer-events: none;
+      }
+      .box:nth-child(4) {
+        background: #008000;
+        z-index: 97;
+        pointer-events: none;
+      }
+      .box:nth-child(5) {
+        background: #0ff;
+        z-index: 96;
+        pointer-events: none;
+      }
+      .box:nth-child(6) {
+        background: rgb(106, 106, 187);
+        z-index: 95;
+        pointer-events: none;
+      }
+      .box:nth-child(7) {
+        background: #800080;
+        z-index: 94;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="box" id="head"></div>
+      <div class="box"></div>
+      <div class="box"></div>
+      <div class="box"></div>
+      <div class="box"></div>
+      <div class="box"></div>
+      <div class="box"></div>
+      <div class="box"></div>
+      <div class="box"></div>
+    </div>
+    <script>
+      var headBox = document.getElementById('head')
+      var boxes = document.getElementsByClassName('box')
+      // var mouseDown$ = Rx.Observable.fromEvent(headBox, 'mousedown')
+      // var mouseMove$ = Rx.Observable.fromEvent(document, 'mousemove')
+      // var mouseUp$ = Rx.Observable.fromEvent(document, 'mouseup')
+      var mouseDown$ = Rx.Observable.fromEvent(headBox, 'touchstart')
+      var mouseMove$ = Rx.Observable.fromEvent(document, 'touchmove')
+      var mouseUp$ = Rx.Observable.fromEvent(document, 'touchend')
+      var delayBoxes$ = Rx.Observable.from([].slice.call(boxes, 0)).zip(
+        Rx.Observable.interval(100).startWith(0),
+        function(box) {
+          // console.log('-----box----', box)
+          return box
+        }
+      )
+      mouseDown$
+        .map(function(e) {
+          var pos = getTranslate(headBox)
+          return {
+            pos: pos,
+            event: e
+          }
+        })
+        .switchMap(function(initialState) {
+          var initialPos = initialState.pos
+          console.log(initialPos)
+          var _initialState$event = initialState.event,
+            // clientX = _initialState$event.clientX,
+            // clientY = _initialState$event.clientY
+            clientX = _initialState$event.changedTouches[0].clientX,
+            clientY = _initialState$event.changedTouches[0].clientY
+
+          console.log('----clientX----', clientX)
+          return mouseMove$
+            .map(function(moveEvent) {
+              // return {
+              //   x: moveEvent.clientX - clientX + initialPos.x,
+              //   y: moveEvent.clientY - clientY + initialPos.y
+              // }
+              return {
+                x: moveEvent.changedTouches[0].clientX - clientX + initialPos.x,
+                y: moveEvent.changedTouches[0].clientY - clientY + initialPos.y
+              }
+            })
+            .takeUntil(mouseUp$)
+        })
+        .mergeMap(function(pos) {
+          return delayBoxes$.do(function(box) {
+            setTranslate(box, pos)
+          })
+        })
+        .subscribe()
+
+      function getTranslate(element) {
+        var style = getComputedStyle(element)
+        var regExp = /matrix\((\d+,\s){4}(\d+),\s(\d+)/i
+        var result = style.transform.match(regExp)
+        if (result) {
+          return {
+            x: parseInt(result[2], 10),
+            y: parseInt(result[3], 10)
+          }
+        } else {
+          return {
+            x: 0,
+            y: 0
+          }
+        }
+      }
+
+      function setTranslate(element, pos) {
+        element.style.transform = 'translate(' + pos.x + 'px, ' + pos.y + 'px)'
+      }
+    </script>
+  </body>
+</html>
