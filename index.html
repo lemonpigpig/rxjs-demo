@@ -1,0 +1,66 @@
+<html>
+  <head>
+    <title>rxjs demo1</title>
+    <script src="https://unpkg.com/@reactivex/rxjs@5.0.0-beta.1/dist/global/Rx.umd.js"></script>
+  </head>
+  <body>
+    <div>
+      create()函数接收一个函数作为参数，这个参数函数实际就是observable这个对象的subscribe函数，就像上面我们自定义的subscribe函数一样。我们看到使用的时候传给subscribe函数的并不是一个observer，而是一个函数，在RxJS内部，subscribe函数的重载会自动为我们创建observer，并把console.log这个函数赋值给了next函数，也就是说，observer.next(1)这个操作实际就是调用的console.log(1)，即在控制台打印数字1。这里值得注意的地方就是，如果一个observable包装的数据源是有限个数的，那么你可以调用complete()函数表明所有数据(事件)都发送完毕了。
+      综上，我们可以自定义Observable，自定义它发送数据的行为，并且可以在整个应用程序中随时重用它。
+    </div>
+    <script>
+      var observable = datasource => {
+        const interval = 1000
+        let schedulerId
+        return {
+          subscribe: observer => {
+            schedulerId = setInterval(() => {
+              if (datasource.length === 0) {
+                observer.complete()
+                clearInterval(schedulerId)
+              } else {
+                observer.next(datasource.shift())
+              }
+            }, interval)
+            return {
+              unsubscribe: () => {
+                if (schedulerId) {
+                  clearInterval(schedulerId)
+                }
+              },
+              subscribe: () => {}
+            }
+          }
+        }
+      }
+      function test1() {
+        const observable = Rx.Observable.of(1, 2, 3).map(function(x) {
+          return x + '!!!'
+        })
+        const subscription = observable.subscribe(res => {
+          console.log(res)
+        })
+        const subscription1 = observable.subscribe({
+          next: console.log,
+          complete: function() {
+            console.log('i am complete')
+          }
+        })
+      }
+      function test2() {
+        const observable = Rx.Observable.create(function subscribe(observer) {
+          observer.next(1)
+          observer.next(2)
+          observer.next(3)
+          observer.complete()
+        })
+        const subscription = observable.subscribe({
+          next: console.log
+        })
+        // so 会将console.log()进行包装
+        const subscription1 = observable.subscribe(console.log)
+      }
+      test2()
+    </script>
+  </body>
+</html>
