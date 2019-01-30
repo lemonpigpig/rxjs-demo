@@ -60,7 +60,52 @@
         // so 会将console.log()进行包装
         const subscription1 = observable.subscribe(console.log)
       }
-      test2()
+      function testpromise() {
+        let start = new Rx.Observable(function subscribe(observer) {
+          let timeout = setTimeout(() => {
+            observer.next('hello')
+          }, 2000)
+        })
+        let str = start.subscribe(value => {
+          console.log(value)
+        })
+        //取消订阅
+        setTimeout(() => {
+          str.unsubscribe()
+        }, 1000)
+      }
+      function testrxjs() {
+        let setTime2
+        let start2 = new Rx.Observable(observable => {
+          let count = 0
+          setTime2 = setInterval(() => {
+            observable.next(count++)
+          }, 1000)
+        })
+        let str2 = start2.subscribe(num => {
+          console.log(num)
+          if (num > 10) {
+            str2.unsubscribe()
+            clearInterval(setTime2)
+          }
+        })
+      }
+      function testrxjs2() {
+        let setTime2
+        let start2 = Rx.Observable.interval(1000).scan(count => count + 1, 1)
+        let str2 = start2
+          .do(res => {
+            console.log('----use tool do for output console')
+          })
+          .subscribe(num => {
+            console.log(num)
+            if (num > 10) {
+              str2.unsubscribe()
+              clearInterval(setTime2)
+            }
+          })
+      }
+      testrxjs2()
     </script>
   </body>
 </html>
